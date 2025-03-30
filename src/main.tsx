@@ -13,7 +13,9 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>
 );
 
-const smoldot = start();
+const smoldot = start({
+  forbidWs: true,
+});
 
 const chain = await smoldot.addChain({
   chainSpec,
@@ -35,14 +37,40 @@ function correlate(provider: JsonRpcProvider) {
   let id = 0;
 
   let followId: string = "";
+  const bodyRequests = new Map<number, (value: string[]) => void>();
+  const ongoingRequests = new Map<string, (value: string[]) => void>();
+
   const connection = provider((msgStr) => {
     const msg = JSON.parse(msgStr);
 
-    if (msg.id === followRequestId) {
-      followId = ""; // TODO
+    if (
+      msg.params?.result?.event === "initialized" ||
+      msg.params?.result?.event === "newBlock"
+    ) {
+      console.log(msg.params.result);
     }
 
-    // TODO
+    if (msg.id === followRequestId) {
+      console.log(msg);
+      followId = msg.result;
+    } else if (bodyRequests.has(msg.id)) {
+      if (msg.result.result != "started") {
+        console.log(msg);
+        throw new Error("Something went wrong");
+      }
+
+      const resolve = bodyRequests.get(msg.id)!;
+      bodyRequests.delete(msg.id);
+      ongoingRequests.set(msg.result.operationId, resolve);
+    } else {
+      const operationId = msg.params?.result?.operationId;
+
+      if (operationId && ongoingRequests.has(operationId)) {
+        const resolve = ongoingRequests.get(operationId)!;
+        ongoingRequests.delete(operationId);
+        resolve(msg.params.result.value);
+      }
+    }
   });
 
   const followRequestId = id++;
@@ -57,28 +85,39 @@ function correlate(provider: JsonRpcProvider) {
 
   return {
     getBody(hash: string): Promise<string[]> {
+      const bodyReqId = id++;
+
       connection.send(
         JSON.stringify({
-          // TODO
+          jsonrpc: "2.0",
+          id: bodyReqId,
+          method: "chainHead_v1_body",
+          params: [followId, hash],
         })
       );
 
-      // TODO
+      return new Promise<string[]>((resolve) => {
+        bodyRequests.set(bodyReqId, resolve);
+      });
     },
   };
 }
 
 const correlationExercise = correlate(provider);
 
-const sendFollow = () => {
-  console.log("send follow");
-  connection.send(
-    JSON.stringify({
-      id: ++id,
-      jsonrpc: "2.0",
-      method: "chainHead_v1_follow",
-      params: [false],
-    })
-  );
-};
-sendFollow();
+window.correlationExercise = correlationExercise;
+
+// const result = await correlationExercise.getBody("0x0123485874");
+
+// const sendFollow = () => {
+//   console.log("send follow");
+//   connection.send(
+//     JSON.stringify({
+//       id: ++id,
+//       jsonrpc: "2.0",
+//       method: "chainHead_v1_follow",
+//       params: [false],
+//     })
+//   );
+// };
+// sendFollow();
