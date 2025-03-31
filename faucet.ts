@@ -37,7 +37,7 @@ console.log("Loaded, serving faucet");
 
 Bun.serve({
   idleTimeout: 60,
-  hostname: "192.168.34.36",
+  hostname: "0.0.0.0",
   routes: {
     "/:account": async (req) => {
       console.log("received request", req.params.account);
