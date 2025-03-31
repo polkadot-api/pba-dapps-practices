@@ -1,0 +1,7 @@
+endpoints:
+  - name: polkadot
+    upstream:
+      url: 9944
+  - name: faucet
+    upstream:
+      url: 3000

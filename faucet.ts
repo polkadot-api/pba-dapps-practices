@@ -25,11 +25,11 @@ const updateNonce = async () => {
     "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
   );
 
-  nonce = Math.max(nonce, account.nonce);
+  nonce = account.nonce;
 };
 console.log("Loading initial nonce");
 await updateNonce();
-setInterval(updateNonce, 12000);
+let token: any = null;
 
 const awardedAccounts: Record<string, boolean> = {};
 
@@ -45,6 +45,10 @@ Bun.serve({
       if (awardedAccounts[account]) return Response.json("Already awarded :(");
       awardedAccounts[account] = true;
       const reqNonce = nonce++;
+      if (token != null) {
+        clearTimeout(token);
+      }
+      token = setTimeout(updateNonce, 60000);
 
       const tx = api.tx.Sudo.sudo({
         call: api.tx.Balances.force_set_balance({
