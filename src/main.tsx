@@ -1,49 +1,41 @@
-import { chainSpec } from "polkadot-api/chains/westend2";
-import { getSmProvider } from "polkadot-api/sm-provider";
-import { start } from "polkadot-api/smoldot";
+import { aleph0 } from "@polkadot-api/descriptors";
+import { createClient } from "polkadot-api";
+import {
+  connectInjectedExtension,
+  getInjectedExtensions,
+} from "polkadot-api/pjs-signer";
+import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
+import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
 import "./index.css";
-import { JsonRpcProvider } from "@polkadot-api/json-rpc-provider";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <div style={{ textAlign: "center" }}>Open the console :)</div>
   </StrictMode>
 );
 
-const smoldot = start({
-  forbidWs: true,
-});
+// Grab first extension
+const extensionId = getInjectedExtensions()[0];
+const extension = await connectInjectedExtension(extensionId);
 
-const chain = await smoldot.addChain({
-  chainSpec,
-});
+// Get the account based on name
+const accounts = extension.getAccounts();
+console.log(accounts);
+const account = accounts.find(
+  (account) => account.name === "Your account name here"
+)!;
 
-const provider = getSmProvider(chain);
-
-import { createClient } from "@polkadot-api/substrate-client";
-
-const client = createClient(provider);
-
-const chainHead = client.chainHead(
-  true,
-  async (evt) => {
-    console.log("chainHead evt", evt);
-
-    if (evt.type === "initialized") {
-      const [block] = evt.finalizedBlockHashes;
-
-      const metadata = await chainHead.call(block, "Metadata_metadata", "");
-      console.log(metadata);
-
-      chainHead.unpin(evt.finalizedBlockHashes);
-    } else if (evt.type === "newBlock") {
-      chainHead.unpin([evt.blockHash]);
-    }
-  },
-  (err) => {
-    console.log(err);
-  }
+const CONTRACT = "5FSbuywmBEbgTKYYMBKvYPDSinQjiJ6MCNBfRS2g5ke74it9";
+const provider = withPolkadotSdkCompat(
+  getWsProvider({
+    endpoints: [
+      "wss://aleph-zero-testnet-rpc.dwellir.com",
+      "wss://ws.test.azero.dev",
+    ],
+    timeout: 10_000,
+  })
 );
+const client = createClient(provider);
+const typedApi = client.getTypedApi(aleph0);
