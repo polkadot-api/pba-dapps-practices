@@ -1,12 +1,12 @@
+import { MultiAddress, wnd } from "@polkadot-api/descriptors";
 import { sr25519CreateDerive } from "@polkadot-labs/hdkd";
 import {
   entropyToMiniSecret,
   mnemonicToEntropy,
 } from "@polkadot-labs/hdkd-helpers";
-import { getPolkadotSigner } from "polkadot-api/signer";
 import { createClient } from "polkadot-api";
+import { getPolkadotSigner } from "polkadot-api/signer";
 import { getWsProvider } from "polkadot-api/ws-provider/web";
-import { MultiAddress, wnd } from "@polkadot-api/descriptors";
 
 const alice_mnemonic =
   "bottom drive obey lake curtain smoke basket hold race lonely fit walk";
@@ -26,6 +26,10 @@ const updateNonce = async () => {
   );
 
   nonce = account.nonce;
+
+  for (const v in awardedAccounts) {
+    awardedAccounts[v] = false;
+  }
 };
 console.log("Loading initial nonce");
 await updateNonce();
@@ -39,10 +43,19 @@ Bun.serve({
   idleTimeout: 60,
   hostname: "0.0.0.0",
   routes: {
-    "/:account": async (req) => {
-      console.log("received request", req.params.account);
-      const account = req.params.account;
-      if (awardedAccounts[account]) return Response.json("Already awarded :(");
+    "/": () =>
+      new Response(faucetContent, {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+        },
+      }),
+    "/drip": async (req) => {
+      const formData = await req.formData();
+
+      const account = formData.get("address");
+
+      console.log("received request", account);
+      if (awardedAccounts[account]) return new Response("Already awarded :(");
       awardedAccounts[account] = true;
       const reqNonce = nonce++;
       if (token != null) {
@@ -61,16 +74,29 @@ Bun.serve({
         const result = await tx.signAndSubmit(aliceSigner, {
           nonce: reqNonce,
         });
+
         if (!result.ok) {
+          awardedAccounts[account] = false;
           console.error(result.dispatchError);
-          return Response.json("Transaction failed :(");
+          return new Response("Transaction failed :(");
         } else {
-          return Response.json("Success!");
+          return new Response("Success! Enjoy your tokens!");
         }
       } catch (ex) {
+        awardedAccounts[account] = false;
         console.error(ex);
-        return Response.json("Invalid tx: " + ex.message);
+        return new Response("Invalid tx: " + ex.message);
       }
     },
   },
 });
+
+const faucetContent = `<html>
+<body style="padding: 1rem; font-family: monospace;">
+<p style="font-size: 1.5rem;">💸🏦💰💵🤑💰💵🏦💸 Free WND for all PBA students 💸🏦💰💵🤑💰💵🏦💸</p>
+<form method="POST" action="/drip">
+<label>Address: <input name="address" /></label>
+<input type="submit" />
+</form>
+</body>
+</html>`;
