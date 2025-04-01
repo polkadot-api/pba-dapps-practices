@@ -1,18 +1,21 @@
+import { MultiAddress, wnd } from "@polkadot-api/descriptors";
 import { Binary, createClient, SS58String, TxEvent } from "polkadot-api";
+import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { FC, FormEvent, useEffect, useState } from "react";
+import { firstValueFrom } from "rxjs";
 import "./App.css";
 import { AccountInput } from "./components/AccountSelector/AccountInput";
+import { accountsByExtension$ } from "./components/AccountSelector/accounts.state";
 import { AccountPicker } from "./components/AccountSelector/AccountSelector";
 import { TokenInput, WND_TOKEN } from "./components/TokenInput";
-import { Label } from "./components/ui/label";
 import { Button } from "./components/ui/button";
-import { getWsProvider } from "polkadot-api/ws-provider/web";
+import { Label } from "./components/ui/label";
 import { Textarea } from "./components/ui/textarea";
-import { MultiAddress, wnd } from "@polkadot-api/descriptors";
-import { firstValueFrom } from "rxjs";
-import { accountsByExtension$ } from "./components/AccountSelector/accounts.state";
 
-const client = createClient(getWsProvider("wss://rpc.ibp.network/westend"));
+// TODO
+const URL = "wss://rpc.ibp.network/westend";
+
+const client = createClient(getWsProvider(URL));
 const typedApi = client.getTypedApi(wnd);
 
 function App() {
@@ -24,7 +27,15 @@ function App() {
     null
   );
 
-  const commentEnabled = false; // TODO
+  const [commentEnabled, setCommentEnabled] = useState(false);
+  useEffect(() => {
+    const subscription = client.finalizedBlock$.subscribe(async () => {
+      // TODO
+      setCommentEnabled(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const onSubmit = async (evt: FormEvent) => {
     evt.preventDefault();
@@ -172,6 +183,7 @@ const bytesToString = (value: Binary) => {
     const bytes = value.asBytes();
     if (bytes.slice(0, 5).every((b) => b < 32)) throw null;
     return textDecoder.decode(bytes);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (_) {
     return value.asHex();
   }
