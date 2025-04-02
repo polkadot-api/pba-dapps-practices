@@ -29,7 +29,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "lucide-react": "^0.485.0",
-    "polkadot-api": "^1.9.7",
+    "polkadot-api": "^1.9.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "rxjs": "^7.8.2",
