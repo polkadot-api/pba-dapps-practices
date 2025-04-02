@@ -35,15 +35,47 @@ const take =
   <T,>(amount: number) =>
   (source$: Observable<T>) =>
     new Observable<T>((subscriber) => {
-      // TODO
+      let sent = 0;
+      const subscription = source$.subscribe({
+        next(value) {
+          subscriber.next(value);
+          sent++;
+
+          if (sent === amount) {
+            subscriber.complete();
+          }
+        },
+        error(err) {
+          subscriber.error(err);
+        },
+        complete() {
+          subscriber.complete();
+        },
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
     });
 
-const sharedObservable$ = observable$.pipe(
-  share(),
-  map((x) => x * 2),
-  take(5)
-);
+class Potato {
+  constructor(private value: number) {}
 
-const subscription = sharedObservable$.subscribe((res) =>
-  console.log("A next", res)
-);
+  foo() {
+    console.log(this.value);
+  }
+}
+
+const potato = new Potato(10);
+const fn = potato.foo;
+fn.call(potato);
+
+// const sharedObservable$ = observable$.pipe(
+//   share(),
+//   map((x) => x * 2),
+//   take(5)
+// );
+
+// const subscription = sharedObservable$.subscribe((res) =>
+//   console.log("A next", res)
+// );
