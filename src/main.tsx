@@ -27,7 +27,7 @@ const account = accounts.find(
   (account) => account.name === "Your account name here"
 )!;
 
-const CONTRACT = "5FSbuywmBEbgTKYYMBKvYPDSinQjiJ6MCNBfRS2g5ke74it9";
+const CONTRACT = "5GiZmrkEf8oPqtCjMcBPYA6odXHgTHF2FxkPNSzr3BWfAPqZ";
 const provider = withPolkadotSdkCompat(
   getWsProvider({
     endpoints: [

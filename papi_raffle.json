@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0x77180c9aa9c4e752d4a308730704934945268533a70a07a5255bcaecb80e7c56",
+    "hash": "0x3089f01a0c325268c01d56927fdbd7c8cd4b94a4161b13fa30da79c204423536",
     "language": "ink! 5.1.1",
     "compiler": "rustc 1.85.1",
     "build_info": {
@@ -1028,7 +1028,8 @@
         "def": {
           "tuple": [
             0,
-            3
+            3,
+            4
           ]
         }
       }
