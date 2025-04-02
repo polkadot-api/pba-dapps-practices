@@ -1,4 +1,4 @@
-import { createClient } from "polkadot-api";
+import { Binary, createClient } from "polkadot-api";
 import {
   connectInjectedExtension,
   getInjectedExtensions,
@@ -37,7 +37,7 @@ const provider = withPolkadotSdkCompat(
 );
 const client = createClient(provider);
 
-import { aleph0, contracts } from "@polkadot-api/descriptors";
+import { aleph0, contracts, MultiAddress } from "@polkadot-api/descriptors";
 
 const typedApi = client.getTypedApi(aleph0);
 const papiRaffle = getInkClient(contracts.papi_raffle);
@@ -53,3 +53,46 @@ console.log(storageResult);
 if (storageResult.success) {
   console.log(storageRootCodec.decode(storageResult.value!));
 }
+
+const storageGuessesCodec = papiRaffle.storage("guesses");
+const guessResult = await typedApi.apis.ContractsApi.get_storage(
+  CONTRACT,
+  storageGuessesCodec.encode(account.address)
+);
+console.log(guessResult);
+if (guessResult.success && guessResult.value) {
+  const [name, guess] = storageGuessesCodec.decode(guessResult.value!);
+  console.log(name.asText(), guess);
+}
+
+const enterMessage = papiRaffle.message("enter");
+
+const response = await typedApi.apis.ContractsApi.call(
+  account.address,
+  CONTRACT,
+  1000000000000n,
+  undefined,
+  undefined,
+  enterMessage.encode({
+    name: Binary.fromText("Victor"),
+    guess: 0,
+  })
+);
+console.log(response);
+
+window.enterRaffle = () => {
+  if (response.result.success) {
+    typedApi.tx.Contracts.call({
+      value: 1000000000000n,
+      data: enterMessage.encode({
+        name: Binary.fromText("Victor"),
+        guess: 0,
+      }),
+      dest: MultiAddress.Id(CONTRACT),
+      gas_limit: response.gas_required,
+      storage_deposit_limit: undefined,
+    })
+      .signSubmitAndWatch(account.polkadotSigner)
+      .subscribe(console.log);
+  }
+};
