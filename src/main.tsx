@@ -5,7 +5,31 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { JsonRpcProvider } from "@polkadot-api/json-rpc-provider";
+// import { JsonRpcProvider } from "@polkadot-api/json-rpc-provider";
+import { JsonRpcProvider } from "polkadot-api/ws-provider/web";
+
+export function withLogsRecorder(
+  persistLog: (msg: string) => void,
+  // Provider wrapped
+  provider: JsonRpcProvider
+): JsonRpcProvider {
+  return (onMessage) => {
+    const connection = provider((msg) => {
+      persistLog("<< " + msg);
+      onMessage(msg);
+    });
+
+    return {
+      disconnect() {
+        connection.disconnect();
+      },
+      send(message) {
+        persistLog(">> " + message);
+        connection.send(message);
+      },
+    };
+  };
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
