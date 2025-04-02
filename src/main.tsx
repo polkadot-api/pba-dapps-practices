@@ -1,4 +1,3 @@
-import { aleph0 } from "@polkadot-api/descriptors";
 import { createClient } from "polkadot-api";
 import {
   connectInjectedExtension,
@@ -9,6 +8,7 @@ import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
+import { getInkClient } from "polkadot-api/ink";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -23,9 +23,7 @@ const extension = await connectInjectedExtension(extensionId);
 // Get the account based on name
 const accounts = extension.getAccounts();
 console.log(accounts);
-const account = accounts.find(
-  (account) => account.name === "Your account name here"
-)!;
+const account = accounts.find((account) => account.name === "PBA Oliva")!;
 
 const CONTRACT = "5GiZmrkEf8oPqtCjMcBPYA6odXHgTHF2FxkPNSzr3BWfAPqZ";
 const provider = withPolkadotSdkCompat(
@@ -38,4 +36,20 @@ const provider = withPolkadotSdkCompat(
   })
 );
 const client = createClient(provider);
+
+import { aleph0, contracts } from "@polkadot-api/descriptors";
+
 const typedApi = client.getTypedApi(aleph0);
+const papiRaffle = getInkClient(contracts.papi_raffle);
+
+const storageRootCodec = papiRaffle.storage();
+
+const storageResult = await typedApi.apis.ContractsApi.get_storage(
+  CONTRACT,
+  storageRootCodec.encode()
+);
+
+console.log(storageResult);
+if (storageResult.success) {
+  console.log(storageRootCodec.decode(storageResult.value!));
+}
