@@ -96,3 +96,52 @@ window.enterRaffle = () => {
       .subscribe(console.log);
   }
 };
+
+const closeMessage = papiRaffle.message("close");
+window.close = () => {
+  if (response.result.success) {
+    typedApi.tx.Contracts.call({
+      value: 0n,
+      data: closeMessage.encode(),
+      dest: MultiAddress.Id(CONTRACT),
+      gas_limit: response.gas_required,
+      storage_deposit_limit: undefined,
+    })
+      .signSubmitAndWatch(account.polkadotSigner)
+      .subscribe(console.log);
+  }
+};
+
+const revealMessage = papiRaffle.message("reveal");
+window.reveal = async (salt: number, value: number) => {
+  console.log("Dry running");
+  const response = await typedApi.apis.ContractsApi.call(
+    account.address,
+    CONTRACT,
+    0n,
+    undefined,
+    undefined,
+    revealMessage.encode({
+      salt,
+      value,
+    })
+  );
+
+  if (response.result.success) {
+    console.log("revealing", revealMessage.decode(response.result.value));
+    typedApi.tx.Contracts.call({
+      value: 0n,
+      data: revealMessage.encode({
+        salt,
+        value,
+      }),
+      dest: MultiAddress.Id(CONTRACT),
+      gas_limit: response.gas_required,
+      storage_deposit_limit: undefined,
+    })
+      .signSubmitAndWatch(account.polkadotSigner)
+      .subscribe(console.log);
+  } else {
+    console.error(response);
+  }
+};
