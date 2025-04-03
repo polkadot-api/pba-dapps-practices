@@ -38,60 +38,51 @@ const provider = withPolkadotSdkCompat(
 const client = createClient(provider);
 
 import { aleph0, contracts, MultiAddress } from "@polkadot-api/descriptors";
+import { createInkSdk } from "@polkadot-api/sdk-ink";
 
 const typedApi = client.getTypedApi(aleph0);
-const papiRaffle = getInkClient(contracts.papi_raffle);
+const papiRaffleSdk = createInkSdk(typedApi, contracts.papi_raffle);
+const papiRaffle = papiRaffleSdk.getContract(CONTRACT);
 
-const storageRootCodec = papiRaffle.storage();
+const papiRaffleStorage = papiRaffle.getStorage();
 
-const storageResult = await typedApi.apis.ContractsApi.get_storage(
-  CONTRACT,
-  storageRootCodec.encode()
-);
+const storageResult = await papiRaffleStorage.getRoot();
 
 console.log(storageResult);
-if (storageResult.success) {
-  console.log(storageRootCodec.decode(storageResult.value!));
+if (!storageResult.success) {
+  throw new Error("No root storage");
 }
+console.log(storageResult.value);
 
-const storageGuessesCodec = papiRaffle.storage("guesses");
-const guessResult = await typedApi.apis.ContractsApi.get_storage(
-  CONTRACT,
-  storageGuessesCodec.encode(account.address)
-);
-console.log(guessResult);
+const guessResult = await storageResult.value.guesses(account.address);
 if (guessResult.success && guessResult.value) {
-  const [name, guess] = storageGuessesCodec.decode(guessResult.value!);
+  const [name, guess] = guessResult.value;
   console.log(name.asText(), guess);
+} else {
+  console.log("Not sent a guess yet");
 }
 
-const enterMessage = papiRaffle.message("enter");
-
-const response = await typedApi.apis.ContractsApi.call(
-  account.address,
-  CONTRACT,
-  1000000000000n,
-  undefined,
-  undefined,
-  enterMessage.encode({
+const response = await papiRaffle.query("enter", {
+  data: {
     name: Binary.fromText("Victor"),
-    guess: 0,
-  })
-);
+    guess: 1,
+  },
+  origin: account.address,
+  value: 1_000_000_000_000n,
+});
 console.log(response);
 
 window.enterRaffle = () => {
-  if (response.result.success) {
-    typedApi.tx.Contracts.call({
-      value: 1000000000000n,
-      data: enterMessage.encode({
-        name: Binary.fromText("Victor"),
-        guess: 0,
-      }),
-      dest: MultiAddress.Id(CONTRACT),
-      gas_limit: response.gas_required,
-      storage_deposit_limit: undefined,
-    })
+  if (response.success) {
+    papiRaffle
+      .send("enter", {
+        data: {
+          name: Binary.fromText("Victor"),
+          guess: 1,
+        },
+        value: 1_000_000_000_000n,
+        gasLimit: response.value.gasRequired,
+      })
       .signSubmitAndWatch(account.polkadotSigner)
       .subscribe(console.log);
   }
@@ -112,7 +103,7 @@ window.close = () => {
   }
 };
 
-const revealMessage = papiRaffle.message("reveal");
+// const revealMessage = papiRaffle.message("reveal");
 window.reveal = async (salt: number, value: number) => {
   console.log("Dry running");
   const response = await typedApi.apis.ContractsApi.call(

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@polkadot-api/descriptors": "file:.papi/descriptors",
+    "@polkadot-api/sdk-ink": "^0.0.1-1",
     "@polkadot-api/substrate-client": "^0.3.0",
     "polkadot-api": "^1.9.7",
     "react": "^19.0.0",
